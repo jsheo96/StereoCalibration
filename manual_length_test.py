@@ -3,15 +3,19 @@ import numpy as np
 import os
 
 if __name__ == '__main__':
-    file_number = 1000
-    max_number = len(os.listdir('underwater_calibration/left'))
-    imgL = cv2.imread('underwater_calibration/left/{:05d}.png'.format(file_number))
-    imgR = cv2.imread('underwater_calibration/right/{:05d}.png'.format(file_number))
+    left_folder = 'C:/Records/Local Records/underwater_calibration/left/'
+    right_folder = 'C:/Records/Local Records/underwater_calibration/right/'
+
+    file_number = 0
+    max_number = len(os.listdir(left_folder))
+    fn = os.listdir(left_folder)[file_number]
+    imgL = cv2.imread(left_folder + fn)
+    imgR = cv2.imread(right_folder + fn)
     h,w,_ = imgL.shape
 
     # rectify image
     print("Loading parameters ......")
-    cv_file = cv2.FileStorage("params_20.xml", cv2.FILE_STORAGE_READ)
+    cv_file = cv2.FileStorage("params_230102.xml", cv2.FILE_STORAGE_READ)
     Left_Stereo_Map = cv_file.getNode("Left_Stereo_Map_x").mat(),cv_file.getNode("Left_Stereo_Map_y").mat()
     Right_Stereo_Map = cv_file.getNode("Right_Stereo_Map_x").mat(),cv_file.getNode("Right_Stereo_Map_y").mat()
     cv_file.release()
@@ -20,7 +24,7 @@ if __name__ == '__main__':
 
     points = []
     points_label = ['headL', 'headR', 'tailL', 'tailR']
-    scale = 4
+    scale = 3
     print('Click the head of fish on left image.')
     def draw_circle(event, x, y, flags, param):
         global mouseX, mouseY, points, points_label
@@ -40,16 +44,16 @@ if __name__ == '__main__':
                 print('{}: {}'.format(points_label[len(points) - 1], points[-1]))
 
             if len(points) == 4:
-                Bf = 428.742112
+                Bf = 2.14175371e+03 * 0.090 # Baseline == 90 mm
                 head_disparity = abs(points[0][0] - points[1][0])
                 tail_disparity = abs(points[2][0] - points[3][0])
                 head_depth = Bf / head_disparity
                 tail_depth = Bf / tail_disparity
                 diff_depth = abs(tail_depth - head_depth)
-                cx = 1.27553668e+03
-                cy = 9.83886486e+02
-                fx = 2.14371056e+03
-                fy = 2.15009239e+03
+                cx = 1.28168848e+03
+                cy = 1.00127541e+03
+                fx = 2.14175371e+03
+                fy = 2.15268771e+03
                 head_x = (points[0][0] - cx) / fx * head_depth
                 tail_x = (points[2][0] - cx) / fx * tail_depth
                 diff_x = abs(head_x - tail_x)
@@ -80,14 +84,15 @@ if __name__ == '__main__':
         if c == ord('e'):
             file_number += 1
             file_number %= max_number
-            imgL = cv2.imread('underwater_calibration/left/{:05d}.png'.format(file_number))
-            imgR = cv2.imread('underwater_calibration/right/{:05d}.png'.format(file_number))
+            fn = os.listdir(left_folder)[file_number]
+            imgL = cv2.imread(left_folder + fn)
+            imgR = cv2.imread(right_folder + fn)
             imgL = cv2.remap(imgL, Left_Stereo_Map[0], Left_Stereo_Map[1], cv2.INTER_LANCZOS4, cv2.BORDER_CONSTANT, 0)
             imgR = cv2.remap(imgR, Right_Stereo_Map[0], Right_Stereo_Map[1], cv2.INTER_LANCZOS4, cv2.BORDER_CONSTANT, 0)
         elif c == ord('q'):
             file_number -= 1
-            file_number %= max_number
-            imgL = cv2.imread('underwater_calibration/left/{:05d}.png'.format(file_number))
-            imgR = cv2.imread('underwater_calibration/right/{:05d}.png'.format(file_number))
+            fn = os.listdir(left_folder)[file_number]
+            imgL = cv2.imread(left_folder + fn)
+            imgR = cv2.imread(right_folder + fn)
             imgL = cv2.remap(imgL, Left_Stereo_Map[0], Left_Stereo_Map[1], cv2.INTER_LANCZOS4, cv2.BORDER_CONSTANT, 0)
             imgR = cv2.remap(imgR, Right_Stereo_Map[0], Right_Stereo_Map[1], cv2.INTER_LANCZOS4, cv2.BORDER_CONSTANT, 0)
