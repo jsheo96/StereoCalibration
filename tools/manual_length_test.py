@@ -1,27 +1,33 @@
 import cv2
 import numpy as np
+import time
 import os
 
 if __name__ == '__main__':
     left_folder = 'C:/Records/Local Records/underwater_calibration/left/'
     right_folder = 'C:/Records/Local Records/underwater_calibration/right/'
+    # left_folder = 'C:/Records/Local Records/images/20221227142356479/'
+    # right_folder = 'C:/Records/Local Records/images/20221227142354487/'
 
     file_number = 0
     max_number = len(os.listdir(left_folder))
     fn = os.listdir(left_folder)[file_number]
+    fnR = os.listdir(right_folder)[file_number]
+    print(fn, fnR)
     imgL = cv2.imread(left_folder + fn)
-    imgR = cv2.imread(right_folder + fn)
+    imgR = cv2.imread(right_folder + fnR)
     h,w,_ = imgL.shape
 
     # rectify image
     print("Loading parameters ......")
-    cv_file = cv2.FileStorage("params_230102.xml", cv2.FILE_STORAGE_READ)
+    cv_file = cv2.FileStorage("params_230323.xml", cv2.FILE_STORAGE_READ)
     Left_Stereo_Map = cv_file.getNode("Left_Stereo_Map_x").mat(),cv_file.getNode("Left_Stereo_Map_y").mat()
     Right_Stereo_Map = cv_file.getNode("Right_Stereo_Map_x").mat(),cv_file.getNode("Right_Stereo_Map_y").mat()
     cv_file.release()
+    start = time.time()
     imgL = cv2.remap(imgL, Left_Stereo_Map[0], Left_Stereo_Map[1], cv2.INTER_LANCZOS4, cv2.BORDER_CONSTANT, 0)
     imgR = cv2.remap(imgR, Right_Stereo_Map[0], Right_Stereo_Map[1], cv2.INTER_LANCZOS4, cv2.BORDER_CONSTANT, 0)
-
+    time_for_remap = time.time()-start
     points = []
     points_label = ['headL', 'headR', 'tailL', 'tailR']
     scale = 3
@@ -44,6 +50,7 @@ if __name__ == '__main__':
                 print('{}: {}'.format(points_label[len(points) - 1], points[-1]))
 
             if len(points) == 4:
+                start = time.time()
                 Bf = 2.14175371e+03 * 0.090 # Baseline == 90 mm
                 head_disparity = abs(points[0][0] - points[1][0])
                 tail_disparity = abs(points[2][0] - points[3][0])
@@ -72,10 +79,11 @@ if __name__ == '__main__':
                 cv2.putText(imgL, '{:.2f}'.format(length*100), orgL, 1, 8, (255,0,0), cv2.LINE_AA)
                 cv2.putText(imgR, '{:.2f}'.format(length*100), orgR, 1, 8, (255,0,0), cv2.LINE_AA)
                 points = [] # initialize
+                print('time for remap + getting length', time_for_remap + time.time()-start)
 
 
 
-    cv2.namedWindow('test')
+    cv2.namedWindow('test', cv2.WINDOW_NORMAL)
     cv2.setMouseCallback('test', draw_circle)
     while True:
         testImg = cv2.resize(np.hstack((imgL, imgR)), None, fx=1/scale, fy=1/scale)
@@ -85,14 +93,16 @@ if __name__ == '__main__':
             file_number += 1
             file_number %= max_number
             fn = os.listdir(left_folder)[file_number]
+            fnR = os.listdir(right_folder)[file_number]
             imgL = cv2.imread(left_folder + fn)
-            imgR = cv2.imread(right_folder + fn)
+            imgR = cv2.imread(right_folder + fnR)
             imgL = cv2.remap(imgL, Left_Stereo_Map[0], Left_Stereo_Map[1], cv2.INTER_LANCZOS4, cv2.BORDER_CONSTANT, 0)
             imgR = cv2.remap(imgR, Right_Stereo_Map[0], Right_Stereo_Map[1], cv2.INTER_LANCZOS4, cv2.BORDER_CONSTANT, 0)
         elif c == ord('q'):
             file_number -= 1
             fn = os.listdir(left_folder)[file_number]
+            fnR = os.listdir(right_folder)[file_number]
             imgL = cv2.imread(left_folder + fn)
-            imgR = cv2.imread(right_folder + fn)
+            imgR = cv2.imread(right_folder + fnR)
             imgL = cv2.remap(imgL, Left_Stereo_Map[0], Left_Stereo_Map[1], cv2.INTER_LANCZOS4, cv2.BORDER_CONSTANT, 0)
             imgR = cv2.remap(imgR, Right_Stereo_Map[0], Right_Stereo_Map[1], cv2.INTER_LANCZOS4, cv2.BORDER_CONSTANT, 0)
